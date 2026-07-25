@@ -10,6 +10,8 @@ use Singularity::renderer::instance::Instance;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
+    env_logger::init();
+
     let entry = unsafe { ash::Entry::load().expect("Failed to load Vulkan") };
 
     // Window
