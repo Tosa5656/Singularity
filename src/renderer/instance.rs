@@ -8,7 +8,7 @@ pub struct Instance
 }
 impl Instance
 {
-    pub fn new(entry: &ash::Entry, app_info: AppInfo) -> Result<Self, vk::Result>
+    pub fn new(entry: &ash::Entry, app_info: AppInfo, window: &winit::window::Window) -> Result<Self, vk::Result>
     {
         let c_engine_name = CString::new("Singularity Engine").unwrap();
 
@@ -19,7 +19,7 @@ impl Instance
             .engine_version(vk::make_api_version(0, 0, 1, 0))
             .api_version(app_info.api_version);
 
-        let extension_names = required_extension_names();
+        let extension_names = required_extension_names(window);
 
         let instance_create_info = vk::InstanceCreateInfo::default()
             .application_info(&application_info)

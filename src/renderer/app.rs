@@ -1,4 +1,5 @@
 use std::ffi::CString;
+use winit::raw_window_handle::HasDisplayHandle;
 
 pub struct AppInfo
 {
@@ -7,10 +8,9 @@ pub struct AppInfo
     pub api_version: u32
 }
 
-pub fn required_extension_names() -> Vec<*const i8>
+pub fn required_extension_names(window: &impl HasDisplayHandle) -> Vec<*const std::os::raw::c_char>
 {
-    vec![
-        ash::vk::KHR_SURFACE_NAME.as_ptr(),
-        ash::vk::KHR_WIN32_SURFACE_NAME.as_ptr(),
-    ]
+    let raw_display = window.display_handle().unwrap().as_raw();
+    let raw_extensions = ash_window::enumerate_required_extensions(raw_display).unwrap();
+    raw_extensions.iter().copied().collect()
 }
