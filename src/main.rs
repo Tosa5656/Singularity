@@ -7,6 +7,7 @@ use winit::{
 
 use Singularity::renderer::app::AppInfo;
 use Singularity::renderer::instance::Instance;
+use Singularity::renderer::devices::PhysicalDevice;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -29,9 +30,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
         api_version: ash::vk::make_api_version(0, 1, 4, 0),
     };
 
-    let _instance = Instance::new(&entry, app_info, &window)
+    let instance = Instance::new(&entry, app_info, &window)
         .expect("Failed to create Vulkan instance");
 
+    let physical_device = PhysicalDevice::new(&instance)
+        .expect("Failed to pick physical device");
+    
     event_loop.run(move |event, elwt|
     {
         if let Event::WindowEvent { event, window_id } = event
