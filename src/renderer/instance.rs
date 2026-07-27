@@ -2,6 +2,7 @@ use ash::vk;
 use std::ffi::{CString, CStr};
 use std::os::raw::{c_char, c_void};
 use super::app::*;
+use super::surface::Surface;
 
 pub struct Instance
 {
@@ -21,7 +22,7 @@ impl Instance
             .engine_version(vk::make_api_version(0, 0, 1, 0))
             .api_version(app_info.api_version);
 
-        let mut extension_names = required_extension_names(window);
+        let mut extension_names = Surface::get_required_extensions(window);
         if ENABLE_VALIDATION_LAYERS
         {
             extension_names.push(ash::vk::EXT_DEBUG_REPORT_NAME.as_ptr());

@@ -7,6 +7,7 @@ use winit::{
 
 use Singularity::renderer::app::AppInfo;
 use Singularity::renderer::instance::Instance;
+use Singularity::renderer::surface::Surface;
 use Singularity::renderer::devices::{PhysicalDevice, Device};
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
@@ -33,12 +34,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
     let instance = Instance::new(&entry, app_info, &window)
         .expect("Failed to create Vulkan instance");
 
-    let physical_device = PhysicalDevice::new(&instance)
+    let surface = Surface::new(&entry, &instance.instance, &window)
+        .expect("Failed to create surface");
+
+    let physical_device = PhysicalDevice::new(&instance, &surface)
         .expect("Failed to pick physical device");
 
-    let device = Device::new(&instance, &physical_device)
+    let _device = Device::new(&instance, &physical_device, &surface)
         .expect("Failed to create logical device");
-    
+
     event_loop.run(move |event, elwt|
     {
         if let Event::WindowEvent { event, window_id } = event
