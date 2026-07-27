@@ -7,7 +7,7 @@ use winit::{
 
 use Singularity::renderer::app::AppInfo;
 use Singularity::renderer::instance::Instance;
-use Singularity::renderer::devices::PhysicalDevice;
+use Singularity::renderer::devices::{PhysicalDevice, Device};
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -35,6 +35,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
 
     let physical_device = PhysicalDevice::new(&instance)
         .expect("Failed to pick physical device");
+
+    let device = Device::new(&instance, &physical_device)
+        .expect("Failed to create logical device");
     
     event_loop.run(move |event, elwt|
     {
