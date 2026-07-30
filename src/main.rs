@@ -12,6 +12,7 @@ use Singularity::renderer::instance::Instance;
 use Singularity::renderer::surface::Surface;
 use Singularity::renderer::devices::{PhysicalDevice, Device};
 use Singularity::renderer::swapchain::SwapChain;
+use Singularity::renderer::pipelines::GraphicsPipeline;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -53,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
         .expect("Failed to create logical device");
 
     let window_size = window.inner_size();
-    let _swapchain = SwapChain::new(
+    let swapchain = SwapChain::new(
         &instance,
         &physical_device,
         &device,
@@ -62,8 +63,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
         window_size.height,
     ).expect("Failed to create swapchain");
 
-    let vertex_shader = Shader::new(&device, Path::new("shaders/base.vert.spv"));
-    let fragment_shader = Shader::new(&device, Path::new("shaders/base.frag.spv"));
+    let vertex_shader = Shader::new(&device, Path::new("shaders/base.vert.spv"))
+        .expect("Failed to create vertex shader");
+    let fragment_shader = Shader::new(&device, Path::new("shaders/base.frag.spv"))
+        .expect("Failed to create fragment shader");
+
+    let graphics_pipeline = GraphicsPipeline::new(&device, &swapchain, &vertex_shader, &fragment_shader);
 
     event_loop.run(move |event, elwt|
     {
