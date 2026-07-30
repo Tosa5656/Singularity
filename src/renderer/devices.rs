@@ -3,6 +3,7 @@ use std::ffi::CStr;
 
 use crate::renderer::instance::Instance;
 use crate::renderer::surface::Surface;
+use crate::renderer::swapchain::{SwapChain, SwapChainSupportDetails};
 
 pub struct PhysicalDevice
 {
@@ -35,7 +36,39 @@ impl PhysicalDevice
     fn is_suitable(instance: &Instance, surface: &Surface, device: vk::PhysicalDevice) -> bool
     {
         let (graphics, present) = Self::find_queue_families(instance, surface, device);
-        graphics.is_some() && present.is_some()
+        let extention_support = Self::check_extension_support(instance, device);
+
+        let physical_device_wrapper = PhysicalDevice { physical_device: device };
+        let details = SwapChainSupportDetails::new(&physical_device_wrapper, surface);
+        let is_swapchain_adequate = !details.formats.is_empty() && !details.present_modes.is_empty();
+
+        graphics.is_some() && present.is_some() && extention_support && is_swapchain_adequate
+    }
+
+    pub fn check_extension_support(instance: &Instance, physical_device: vk::PhysicalDevice) -> bool
+    {
+        let required_extentions = [SwapChain::name()];
+
+        let extension_props = unsafe
+        {
+            instance.instance
+                .enumerate_device_extension_properties(physical_device)
+                .unwrap()
+        };
+
+        for required in required_extentions.iter()
+        {
+            let found = extension_props.iter().any(|ext| {
+                let name = unsafe { CStr::from_ptr(ext.extension_name.as_ptr()) };
+                required == &name
+            });
+
+            if !found {
+                return false;
+            }
+        }
+
+        true
     }
 
     pub(crate) fn find_queue_families(instance: &Instance, surface: &Surface, device: vk::PhysicalDevice) -> (Option<u32>, Option<u32>)
@@ -72,9 +105,11 @@ impl PhysicalDevice
 
 pub struct Device
 {
-    device: ash::Device,
-    graphics_queue: vk::Queue,
-    present_queue: vk::Queue
+    pub device: ash::Device,
+    pub graphics_queue: vk::Queue,
+    pub present_queue: vk::Queue,
+    pub graphics_family_index: u32,
+    pub present_family_index: u32,
 }
 impl Device
 {
@@ -101,10 +136,17 @@ impl Device
                 .collect::<Vec<_>>()
         };
 
+        let device_extensions = [SwapChain::name()];
+        let device_extensions_ptrs = device_extensions
+            .iter()
+            .map(|ext| ext.as_ptr())
+            .collect::<Vec<_>>();
+
         let device_features = vk::PhysicalDeviceFeatures::default();
 
         let device_create_info = vk::DeviceCreateInfo::default()
             .queue_create_infos(&queue_create_infos)
+            .enabled_extension_names(&device_extensions_ptrs)
             .enabled_features(&device_features);
 
         let device = unsafe {
@@ -116,7 +158,7 @@ impl Device
         let graphics_queue = unsafe { device.get_device_queue(graphics_family_index, 0) };
         let present_queue = unsafe { device.get_device_queue(present_family_index, 0) };
 
-        Ok(Self { device, graphics_queue, present_queue })
+        Ok(Self { device, graphics_queue, present_queue, graphics_family_index, present_family_index })
     }
 }
 impl Drop for Device

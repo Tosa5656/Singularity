@@ -9,6 +9,7 @@ use Singularity::renderer::app::AppInfo;
 use Singularity::renderer::instance::Instance;
 use Singularity::renderer::surface::Surface;
 use Singularity::renderer::devices::{PhysicalDevice, Device};
+use Singularity::renderer::swapchain::SwapChain;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -40,8 +41,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
     let physical_device = PhysicalDevice::new(&instance, &surface)
         .expect("Failed to pick physical device");
 
-    let _device = Device::new(&instance, &physical_device, &surface)
+    let device = Device::new(&instance, &physical_device, &surface)
         .expect("Failed to create logical device");
+
+    let window_size = window.inner_size();
+    let _swapchain = SwapChain::new(
+        &instance,
+        &physical_device,
+        &device,
+        &surface,
+        window_size.width,
+        window_size.height,
+    ).expect("Failed to create swapchain");
 
     event_loop.run(move |event, elwt|
     {
