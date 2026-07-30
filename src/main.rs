@@ -1,11 +1,13 @@
 use std::ffi::CString;
+use std::path::Path;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::Window,
 };
+use std::env;
 
-use Singularity::renderer::app::AppInfo;
+use Singularity::renderer::{app::AppInfo, shaders::Shader};
 use Singularity::renderer::instance::Instance;
 use Singularity::renderer::surface::Surface;
 use Singularity::renderer::devices::{PhysicalDevice, Device};
@@ -13,6 +15,12 @@ use Singularity::renderer::swapchain::SwapChain;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
+    if let Ok(mut exe_path) = env::current_exe()
+    {
+        exe_path.pop();
+        env::set_current_dir(&exe_path).expect("Failed to set workdir");
+    }
+
     env_logger::init();
 
     let entry = unsafe { ash::Entry::load().expect("Failed to load Vulkan") };
@@ -53,6 +61,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
         window_size.width,
         window_size.height,
     ).expect("Failed to create swapchain");
+
+    let vertex_shader = Shader::new(&device, Path::new("shaders/base.vert.spv"));
+    let fragment_shader = Shader::new(&device, Path::new("shaders/base.frag.spv"));
 
     event_loop.run(move |event, elwt|
     {
