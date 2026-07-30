@@ -51,12 +51,26 @@ impl<'a> GraphicsPipeline<'a>
         };
         let subpass_descs = [subpass_desc];
 
+        let subpass_dep = vk::SubpassDependency
+        {
+            src_subpass: vk::SUBPASS_EXTERNAL,
+            dst_subpass: 0,
+            src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+            src_access_mask: vk::AccessFlags::empty(),
+            dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
+            dependency_flags: vk::DependencyFlags::empty(),
+        };
+        let subpass_deps = [subpass_dep];
+
         let render_pass_info = vk::RenderPassCreateInfo
         {
             attachment_count: 1,
             p_attachments: attachment_descs.as_ptr(),
             subpass_count: 1,
             p_subpasses: subpass_descs.as_ptr(),
+            dependency_count: 1,
+            p_dependencies: subpass_deps.as_ptr(),
             ..Default::default()
         };
 

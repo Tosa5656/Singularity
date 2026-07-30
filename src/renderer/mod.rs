@@ -5,3 +5,7 @@ pub mod surface;
 pub mod swapchain;
 pub mod shaders;
 pub mod pipelines;
+pub mod framebuffer;
+pub mod command_pool;
+pub mod command_buffer;
+pub mod sync;

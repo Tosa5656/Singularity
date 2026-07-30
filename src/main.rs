@@ -1,18 +1,21 @@
 use std::ffi::CString;
 use std::path::Path;
 use winit::{
-    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::Window,
 };
 use std::env;
 
-use Singularity::renderer::{app::AppInfo, shaders::Shader};
+use Singularity::renderer::{app::{App, AppInfo}, sync::SyncObjects};
 use Singularity::renderer::instance::Instance;
 use Singularity::renderer::surface::Surface;
 use Singularity::renderer::devices::{PhysicalDevice, Device};
 use Singularity::renderer::swapchain::SwapChain;
+use Singularity::renderer::shaders::Shader;
 use Singularity::renderer::pipelines::GraphicsPipeline;
+use Singularity::renderer::framebuffer::Framebuffer;
+use Singularity::renderer::command_pool::CommandPool;
+use Singularity::renderer::command_buffer::CommandBuffer;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -68,22 +71,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
     let fragment_shader = Shader::new(&device, Path::new("shaders/base.frag.spv"))
         .expect("Failed to create fragment shader");
 
-    let graphics_pipeline = GraphicsPipeline::new(&device, &swapchain, &vertex_shader, &fragment_shader);
+    let graphics_pipeline = GraphicsPipeline::new(&device, &swapchain, &vertex_shader, &fragment_shader)
+        .expect("Failed to create graphics pipeline");
 
-    event_loop.run(move |event, elwt|
-    {
-        if let Event::WindowEvent { event, window_id } = event
-        {
-            if window_id == window.id()
-            {
-                match event
-                {
-                    WindowEvent::CloseRequested => elwt.exit(),
-                    _ => {}
-                }
-            }
-        }
-    })?;
+    let framebuffer = Framebuffer::new(&device, &swapchain, &graphics_pipeline);
+
+    let command_pool = CommandPool::new(&device)
+        .expect("Failed to create command pool");
+
+    let command_buffers: Vec<CommandBuffer> = framebuffer.framebuffers
+        .iter()
+        .map(|fb| CommandBuffer::new(
+            &device,
+            command_pool.pool(),
+            *fb,
+            graphics_pipeline.render_pass,
+            swapchain.extent(),
+            graphics_pipeline.pipeline,
+        ))
+        .collect();
+
+    let sync_objects = SyncObjects::new(&device);
+
+    drop(vertex_shader);
+    drop(fragment_shader);
+    drop(graphics_pipeline);
+    drop(framebuffer);
+
+    let app = App::new(event_loop, window, device, swapchain, sync_objects, command_buffers);
+    app.run();
 
     Ok(())
 }

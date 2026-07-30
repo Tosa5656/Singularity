@@ -44,7 +44,7 @@ pub struct SwapChain
     images: Vec<vk::Image>,
     image_format: vk::Format,
     extent: vk::Extent2D,
-    image_views: Vec<vk::ImageView>,
+    pub image_views: Vec<vk::ImageView>,
     device: ash::Device,
 }
 impl SwapChain
@@ -131,6 +131,16 @@ impl SwapChain
     pub fn images(&self) -> &[vk::Image]
     {
         &self.images
+    }
+
+    pub fn raw_swapchain_khr(&self) -> vk::SwapchainKHR
+    {
+        self.swapchain_khr
+    }
+
+    pub fn loader(&self) -> &swapchain::Device
+    {
+        &self.swapchain_loader
     }
 
     fn choose_surface_format(available_formats: &[vk::SurfaceFormatKHR]) -> vk::SurfaceFormatKHR
