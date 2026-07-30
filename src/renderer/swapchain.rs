@@ -44,6 +44,8 @@ pub struct SwapChain
     images: Vec<vk::Image>,
     image_format: vk::Format,
     extent: vk::Extent2D,
+    image_views: Vec<vk::ImageView>,
+    device: ash::Device,
 }
 impl SwapChain
 {
@@ -111,7 +113,9 @@ impl SwapChain
         let swapchain_loader = swapchain::Device::new(&instance.instance, &device.device);
         let swapchain_khr = unsafe { swapchain_loader.create_swapchain(&create_info, None).unwrap() };
         let images = unsafe { swapchain_loader.get_swapchain_images(swapchain_khr).unwrap() };
-        Ok(Self { swapchain_loader, swapchain_khr, images, image_format: format.format, extent })
+        let image_views = Self::create_image_views(&images, format.format, &device.device);
+
+        Ok(Self { swapchain_loader, swapchain_khr, images, image_format: format.format, extent, image_views, device: device.device.clone() })
     }
 
     pub fn image_format(&self) -> vk::Format
@@ -176,11 +180,50 @@ impl SwapChain
         let height = height.min(max.height).max(min.height);
         vk::Extent2D { width, height }
     }
+
+    fn create_image_views(images: &[vk::Image], format: vk::Format, device: &ash::Device) -> Vec<vk::ImageView>
+    {
+        images
+            .iter()
+            .map(|image| {
+                let create_info = vk::ImageViewCreateInfo
+                {
+                    image: *image,
+                    view_type: vk::ImageViewType::TYPE_2D,
+                    format,
+                    components: vk::ComponentMapping
+                    {
+                        r: vk::ComponentSwizzle::IDENTITY,
+                        g: vk::ComponentSwizzle::IDENTITY,
+                        b: vk::ComponentSwizzle::IDENTITY,
+                        a: vk::ComponentSwizzle::IDENTITY,
+                    },
+                    subresource_range: vk::ImageSubresourceRange
+                    {
+                        aspect_mask: vk::ImageAspectFlags::COLOR,
+                        base_mip_level: 0,
+                        level_count: 1,
+                        base_array_layer: 0,
+                        layer_count: 1,
+                    },
+                    ..Default::default()
+                };
+
+                unsafe { device.create_image_view(&create_info, None).unwrap() }
+            })
+            .collect::<Vec<_>>()
+    }
 }
 impl Drop for SwapChain
 {
     fn drop(&mut self)
     {
-        unsafe { self.swapchain_loader.destroy_swapchain(self.swapchain_khr, None); }
+        unsafe
+        {
+            self.image_views
+                .iter()
+                .for_each(|v| self.device.destroy_image_view(*v, None));
+            self.swapchain_loader.destroy_swapchain(self.swapchain_khr, None);
+        }
     }
 }
