@@ -95,10 +95,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
 
     drop(vertex_shader);
     drop(fragment_shader);
-    drop(graphics_pipeline);
-    drop(framebuffer);
 
-    let app = App::new(event_loop, window, device, swapchain, sync_objects, command_buffers);
+    let app = App::new(event_loop, window, swapchain, graphics_pipeline, framebuffer, sync_objects, command_buffers, command_pool, device);
     app.run();
 
     Ok(())

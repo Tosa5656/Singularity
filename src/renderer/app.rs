@@ -8,6 +8,9 @@ use crate::renderer::devices::Device;
 use crate::renderer::swapchain::SwapChain;
 use crate::renderer::sync::SyncObjects;
 use crate::renderer::command_buffer::CommandBuffer;
+use crate::renderer::command_pool::CommandPool;
+use crate::renderer::pipelines::GraphicsPipeline;
+use crate::renderer::framebuffer::Framebuffer;
 
 pub const ENABLE_VALIDATION_LAYERS: bool = true;
 pub const REQUIRED_LAYERS: [&'static str; 1] = ["VK_LAYER_KHRONOS_validation"];
@@ -23,10 +26,13 @@ pub struct App
 {
     pub event_loop: EventLoop<()>,
     pub window: Window,
-    device: Device,
     swapchain: SwapChain,
+    graphics_pipeline: GraphicsPipeline,
+    framebuffer: Framebuffer,
     sync_objects: SyncObjects,
     command_buffers: Vec<CommandBuffer>,
+    command_pool: CommandPool,
+    device: Device,
 }
 
 impl App
@@ -34,18 +40,22 @@ impl App
     pub fn new(
         event_loop: EventLoop<()>,
         window: Window,
-        device: Device,
         swapchain: SwapChain,
+        graphics_pipeline: GraphicsPipeline,
+        framebuffer: Framebuffer,
         sync_objects: SyncObjects,
         command_buffers: Vec<CommandBuffer>,
+        command_pool: CommandPool,
+        device: Device,
     ) -> Self
     {
-        Self { event_loop, window, device, swapchain, sync_objects, command_buffers }
+        Self { event_loop, window, swapchain, graphics_pipeline, framebuffer, sync_objects, command_buffers, command_pool, device }
     }
 
     pub fn run(self)
     {
         let device_raw = self.device.device.clone();
+        let device_for_cleanup = device_raw.clone();
         let graphics_queue = self.device.graphics_queue;
         let present_queue = self.device.present_queue;
         let swapchain_loader = self.swapchain.loader().clone();
@@ -79,6 +89,8 @@ impl App
                 &cmd_buffers,
             );
         }).expect("Event loop error");
+
+        unsafe { device_for_cleanup.device_wait_idle().unwrap(); }
     }
 }
 
@@ -93,6 +105,8 @@ fn draw_frame(
     command_buffers: &[vk::CommandBuffer],
 )
 {
+    unsafe { device.device_wait_idle().unwrap(); }
+
     let image_index = unsafe
     {
         swapchain_loader

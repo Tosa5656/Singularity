@@ -5,17 +5,17 @@ use crate::renderer::devices::Device;
 use crate::renderer::swapchain::SwapChain;
 use crate::renderer::shaders::Shader;
 
-pub struct GraphicsPipeline<'a>
+pub struct GraphicsPipeline
 {
     pub pipeline: vk::Pipeline,
     pub pipeline_layout: vk::PipelineLayout,
     pub render_pass: vk::RenderPass,
-    pub device: &'a Device,
+    device: ash::Device,
 }
-impl<'a> GraphicsPipeline<'a>
+impl GraphicsPipeline
 {
     pub fn new(
-        device: &'a Device,
+        device: &Device,
         swapchain: &SwapChain,
         vertex_shader: &Shader,
         fragment_shader: &Shader,
@@ -210,18 +210,18 @@ impl<'a> GraphicsPipeline<'a>
                 .unwrap()[0]
         };
 
-        Ok(Self { pipeline, pipeline_layout, render_pass, device })
+        Ok(Self { pipeline, pipeline_layout, render_pass, device: device.device.clone() })
     }
 }
-impl Drop for GraphicsPipeline<'_>
+impl Drop for GraphicsPipeline
 {
     fn drop(&mut self)
     {
         unsafe
         {
-            self.device.device.destroy_pipeline(self.pipeline, None);
-            self.device.device.destroy_pipeline_layout(self.pipeline_layout, None);
-            self.device.device.destroy_render_pass(self.render_pass, None);
+            self.device.destroy_pipeline(self.pipeline, None);
+            self.device.destroy_pipeline_layout(self.pipeline_layout, None);
+            self.device.destroy_render_pass(self.render_pass, None);
         }
     }
 }

@@ -4,14 +4,14 @@ use crate::renderer::devices::Device;
 use crate::renderer::pipelines::GraphicsPipeline;
 use crate::renderer::swapchain::SwapChain;
 
-pub struct Framebuffer<'a>
+pub struct Framebuffer
 {
     pub framebuffers: Vec<vk::Framebuffer>,
-    device: &'a Device,
+    device: ash::Device,
 }
-impl<'a> Framebuffer<'a>
+impl Framebuffer
 {
-    pub fn new(device: &'a Device, swapchain: &SwapChain, graphics_pipeline: &GraphicsPipeline) -> Self
+    pub fn new(device: &Device, swapchain: &SwapChain, graphics_pipeline: &GraphicsPipeline) -> Self
     {
         let framebuffers = swapchain.image_views
             .iter()
@@ -31,13 +31,13 @@ impl<'a> Framebuffer<'a>
             })
             .collect::<Vec<_>>();
 
-        Self { framebuffers, device }
+        Self { framebuffers, device: device.device.clone() }
     }
 }
-impl Drop for Framebuffer<'_>
+impl Drop for Framebuffer
 {
     fn drop(&mut self)
     {
-        unsafe { self.framebuffers.iter().for_each(|f| self.device.device.destroy_framebuffer(*f, None)); };
+        unsafe { self.framebuffers.iter().for_each(|f| self.device.destroy_framebuffer(*f, None)); };
     }
 }
