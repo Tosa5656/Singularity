@@ -6,7 +6,7 @@ use winit::window::Window;
 
 use crate::renderer::devices::Device;
 use crate::renderer::swapchain::SwapChain;
-use crate::renderer::sync::SyncObjects;
+use crate::renderer::sync::InFlightFrames;
 use crate::renderer::command_buffer::CommandBuffer;
 use crate::renderer::command_pool::CommandPool;
 use crate::renderer::pipelines::GraphicsPipeline;
@@ -29,7 +29,7 @@ pub struct App
     swapchain: SwapChain,
     graphics_pipeline: GraphicsPipeline,
     framebuffer: Framebuffer,
-    sync_objects: SyncObjects,
+    in_flight_frames: InFlightFrames,
     command_buffers: Vec<CommandBuffer>,
     command_pool: CommandPool,
     device: Device,
@@ -43,13 +43,13 @@ impl App
         swapchain: SwapChain,
         graphics_pipeline: GraphicsPipeline,
         framebuffer: Framebuffer,
-        sync_objects: SyncObjects,
+        in_flight_frames: InFlightFrames,
         command_buffers: Vec<CommandBuffer>,
         command_pool: CommandPool,
         device: Device,
     ) -> Self
     {
-        Self { event_loop, window, swapchain, graphics_pipeline, framebuffer, sync_objects, command_buffers, command_pool, device }
+        Self { event_loop, window, swapchain, graphics_pipeline, framebuffer, in_flight_frames, command_buffers, command_pool, device }
     }
 
     pub fn run(self)
@@ -59,10 +59,12 @@ impl App
         let present_queue = self.device.present_queue;
         let swapchain_loader = self.swapchain.loader().clone();
         let swapchain_khr = self.swapchain.raw_swapchain_khr();
-        let mut sync_objects = self.sync_objects;
+        let mut in_flight_frames = self.in_flight_frames;
         let cmd_buffers: Vec<vk::CommandBuffer> = self.command_buffers.into_iter().map(|cb| cb.buffer).collect();
         let window = self.window;
         let _idle_guard = DeviceIdleGuard(device_raw.clone());
+
+        let in_flight_frames = &mut in_flight_frames;
 
         self.event_loop.run(move |event, elwt|
         {
@@ -79,7 +81,7 @@ impl App
             }
             draw_frame(
                 &device_raw,
-                &mut sync_objects,
+                in_flight_frames,
                 &swapchain_loader,
                 swapchain_khr,
                 graphics_queue,
@@ -103,7 +105,7 @@ impl Drop for DeviceIdleGuard
 
 fn draw_frame(
     device: &ash::Device,
-    sync_objects: &mut SyncObjects,
+    in_flight_frames: &mut InFlightFrames,
     swapchain_loader: &swapchain::Device,
     swapchain_khr: vk::SwapchainKHR,
     graphics_queue: vk::Queue,
@@ -111,9 +113,9 @@ fn draw_frame(
     command_buffers: &[vk::CommandBuffer],
 )
 {
-    let current_frame = sync_objects.current_frame;
-    let in_flight_fence = sync_objects.in_flight_fences[current_frame];
-    let image_available_semaphore = sync_objects.image_available_semaphores[current_frame];
+    let frame = in_flight_frames.current();
+    let in_flight_fence = frame.in_flight_fence;
+    let image_available_semaphore = frame.image_available_semaphore;
 
     unsafe
     {
@@ -134,7 +136,7 @@ fn draw_frame(
             .0 as usize
     };
 
-    let render_finished_semaphore = sync_objects.render_finished_semaphores[image_index];
+    let render_finished_semaphore = in_flight_frames.render_finished_semaphore(image_index);
 
     let wait_semaphores = [image_available_semaphore];
     let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
@@ -169,5 +171,5 @@ fn draw_frame(
             .unwrap();
     }
 
-    sync_objects.current_frame = (current_frame + 1) % SyncObjects::MAX_FRAMES_IN_FLIGHT;
+    in_flight_frames.advance();
 }

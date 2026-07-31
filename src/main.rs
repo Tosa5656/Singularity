@@ -6,7 +6,7 @@ use winit::{
 };
 use std::env;
 
-use Singularity::renderer::{app::{App, AppInfo}, sync::SyncObjects};
+use Singularity::renderer::{app::{App, AppInfo}, sync::InFlightFrames};
 use Singularity::renderer::instance::Instance;
 use Singularity::renderer::surface::Surface;
 use Singularity::renderer::devices::{PhysicalDevice, Device};
@@ -91,12 +91,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
         ))
         .collect();
 
-    let sync_objects = SyncObjects::new(&device, swapchain.image_views.len());
+    let in_flight_frames = InFlightFrames::new(&device, swapchain.image_views.len())
+        .expect("Failed to create sync objects");
 
     drop(vertex_shader);
     drop(fragment_shader);
 
-    let app = App::new(event_loop, window, swapchain, graphics_pipeline, framebuffer, sync_objects, command_buffers, command_pool, device);
+    let app = App::new(event_loop, window, swapchain, graphics_pipeline, framebuffer, in_flight_frames, command_buffers, command_pool, device);
     app.run();
 
     Ok(())
