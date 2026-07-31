@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
         ))
         .collect();
 
-    let sync_objects = SyncObjects::new(&device);
+    let sync_objects = SyncObjects::new(&device, swapchain.image_views.len());
 
     drop(vertex_shader);
     drop(fragment_shader);

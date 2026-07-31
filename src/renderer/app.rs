@@ -55,15 +55,14 @@ impl App
     pub fn run(self)
     {
         let device_raw = self.device.device.clone();
-        let device_for_cleanup = device_raw.clone();
         let graphics_queue = self.device.graphics_queue;
         let present_queue = self.device.present_queue;
         let swapchain_loader = self.swapchain.loader().clone();
         let swapchain_khr = self.swapchain.raw_swapchain_khr();
-        let image_available_semaphore = self.sync_objects.image_available_semaphore;
-        let render_finished_semaphore = self.sync_objects.render_finished_semaphore;
+        let mut sync_objects = self.sync_objects;
         let cmd_buffers: Vec<vk::CommandBuffer> = self.command_buffers.into_iter().map(|cb| cb.buffer).collect();
         let window = self.window;
+        let _idle_guard = DeviceIdleGuard(device_raw.clone());
 
         self.event_loop.run(move |event, elwt|
         {
@@ -80,32 +79,47 @@ impl App
             }
             draw_frame(
                 &device_raw,
+                &mut sync_objects,
                 &swapchain_loader,
                 swapchain_khr,
                 graphics_queue,
                 present_queue,
-                image_available_semaphore,
-                render_finished_semaphore,
                 &cmd_buffers,
             );
-        }).expect("Event loop error");
+        })
+        .expect("Event loop error");
+    }
+}
 
-        unsafe { device_for_cleanup.device_wait_idle().unwrap(); }
+struct DeviceIdleGuard(ash::Device);
+
+impl Drop for DeviceIdleGuard
+{
+    fn drop(&mut self)
+    {
+        unsafe { let _ = self.0.device_wait_idle(); }
     }
 }
 
 fn draw_frame(
     device: &ash::Device,
+    sync_objects: &mut SyncObjects,
     swapchain_loader: &swapchain::Device,
     swapchain_khr: vk::SwapchainKHR,
     graphics_queue: vk::Queue,
     present_queue: vk::Queue,
-    image_available_semaphore: vk::Semaphore,
-    render_finished_semaphore: vk::Semaphore,
     command_buffers: &[vk::CommandBuffer],
 )
 {
-    unsafe { device.device_wait_idle().unwrap(); }
+    let current_frame = sync_objects.current_frame;
+    let in_flight_fence = sync_objects.in_flight_fences[current_frame];
+    let image_available_semaphore = sync_objects.image_available_semaphores[current_frame];
+
+    unsafe
+    {
+        device.wait_for_fences(&[in_flight_fence], true, std::u64::MAX).unwrap();
+        device.reset_fences(&[in_flight_fence]).unwrap();
+    }
 
     let image_index = unsafe
     {
@@ -119,6 +133,8 @@ fn draw_frame(
             .unwrap()
             .0 as usize
     };
+
+    let render_finished_semaphore = sync_objects.render_finished_semaphores[image_index];
 
     let wait_semaphores = [image_available_semaphore];
     let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
@@ -134,7 +150,7 @@ fn draw_frame(
     unsafe
     {
         device
-            .queue_submit(graphics_queue, &[submit_info], vk::Fence::null())
+            .queue_submit(graphics_queue, &[submit_info], in_flight_fence)
             .unwrap();
     }
 
@@ -152,4 +168,6 @@ fn draw_frame(
             .queue_present(present_queue, &present_info)
             .unwrap();
     }
+
+    sync_objects.current_frame = (current_frame + 1) % SyncObjects::MAX_FRAMES_IN_FLIGHT;
 }
