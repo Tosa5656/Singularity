@@ -176,6 +176,14 @@ impl GraphicsPipeline
             ..Default::default()
         };
 
+        let dynamic_states = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
+        let dynamic_state_info = vk::PipelineDynamicStateCreateInfo
+        {
+            dynamic_state_count: dynamic_states.len() as u32,
+            p_dynamic_states: dynamic_states.as_ptr(),
+            ..Default::default()
+        };
+
         let pipeline_layout =
         {
             let pipeline_layout_info = vk::PipelineLayoutCreateInfo
@@ -196,6 +204,7 @@ impl GraphicsPipeline
             p_rasterization_state: &rasterizer_info,
             p_multisample_state: &multisampling_info,
             p_color_blend_state: &color_blending_info,
+            p_dynamic_state: &dynamic_state_info,
             layout: pipeline_layout,
             render_pass,
             subpass: 0,

@@ -26,6 +26,11 @@ impl CommandPool
     {
         self.pool
     }
+
+    pub fn free(&self, buffers: &[vk::CommandBuffer])
+    {
+        unsafe { self.device.free_command_buffers(self.pool, buffers) };
+    }
 }
 impl Drop for CommandPool
 {

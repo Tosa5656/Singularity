@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
     let graphics_pipeline = GraphicsPipeline::new(&device, &swapchain, &vertex_shader, &fragment_shader)
         .expect("Failed to create graphics pipeline");
 
-    let framebuffer = Framebuffer::new(&device, &swapchain, &graphics_pipeline);
+    let framebuffer = Framebuffer::new(&device.device, &swapchain, &graphics_pipeline);
 
     let command_pool = CommandPool::new(&device)
         .expect("Failed to create command pool");
@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
     let command_buffers: Vec<CommandBuffer> = framebuffer.framebuffers
         .iter()
         .map(|fb| CommandBuffer::new(
-            &device,
+            &device.device,
             command_pool.pool(),
             *fb,
             graphics_pipeline.render_pass,
@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
         ))
         .collect();
 
-    let in_flight_frames = InFlightFrames::new(&device, swapchain.image_views.len())
+    let in_flight_frames = InFlightFrames::new(&device.device, swapchain.image_views.len())
         .expect("Failed to create sync objects");
 
     drop(vertex_shader);

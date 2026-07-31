@@ -1,7 +1,5 @@
 use ash::vk;
 
-use crate::renderer::devices::Device;
-
 pub struct CommandBuffer
 {
     pub buffer: vk::CommandBuffer,
@@ -10,7 +8,7 @@ pub struct CommandBuffer
 impl CommandBuffer
 {
     pub fn new(
-        device: &Device,
+        device: &ash::Device,
         pool: vk::CommandPool,
         framebuffer: vk::Framebuffer,
         render_pass: vk::RenderPass,
@@ -26,7 +24,7 @@ impl CommandBuffer
             ..Default::default()
         };
 
-        let buffer = unsafe { device.device.allocate_command_buffers(&allocate_info).unwrap()[0] };
+        let buffer = unsafe { device.allocate_command_buffers(&allocate_info).unwrap()[0] };
 
         {
             let command_buffer_begin_info = vk::CommandBufferBeginInfo
@@ -34,7 +32,7 @@ impl CommandBuffer
                 flags: vk::CommandBufferUsageFlags::SIMULTANEOUS_USE,
                 ..Default::default()
             };
-            unsafe { device.device.begin_command_buffer(buffer, &command_buffer_begin_info).unwrap() };
+            unsafe { device.begin_command_buffer(buffer, &command_buffer_begin_info).unwrap() };
         }
 
         {
@@ -61,7 +59,7 @@ impl CommandBuffer
 
             unsafe
             {
-                device.device.cmd_begin_render_pass(
+                device.cmd_begin_render_pass(
                     buffer,
                     &render_pass_begin_info,
                     vk::SubpassContents::INLINE,
@@ -69,13 +67,31 @@ impl CommandBuffer
             };
         }
 
-        unsafe { device.device.cmd_bind_pipeline(buffer, vk::PipelineBindPoint::GRAPHICS, graphics_pipeline) };
+        unsafe { device.cmd_bind_pipeline(buffer, vk::PipelineBindPoint::GRAPHICS, graphics_pipeline) };
 
-        unsafe { device.device.cmd_draw(buffer, 3, 1, 0, 0) };
+        let viewport = vk::Viewport
+        {
+            x: 0.0,
+            y: 0.0,
+            width: extent.width as f32,
+            height: extent.height as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+        };
+        unsafe { device.cmd_set_viewport(buffer, 0, &[viewport]) };
 
-        unsafe { device.device.cmd_end_render_pass(buffer) };
+        let scissor = vk::Rect2D
+        {
+            offset: vk::Offset2D { x: 0, y: 0 },
+            extent,
+        };
+        unsafe { device.cmd_set_scissor(buffer, 0, &[scissor]) };
 
-        unsafe { device.device.end_command_buffer(buffer).unwrap() };
+        unsafe { device.cmd_draw(buffer, 3, 1, 0, 0) };
+
+        unsafe { device.cmd_end_render_pass(buffer) };
+
+        unsafe { device.end_command_buffer(buffer).unwrap() };
 
         Self { buffer }
     }

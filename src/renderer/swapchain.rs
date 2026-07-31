@@ -15,21 +15,33 @@ impl SwapChainSupportDetails
 {
     pub(crate) fn new(physical_device: &PhysicalDevice, surface: &Surface) -> Self
     {
-        let capabilities = unsafe {
-            surface.surface_fn
-                .get_physical_device_surface_capabilities(physical_device.physical_device, surface.surface_khr)
+        Self::query(&surface.surface_fn, surface.surface_khr, physical_device.physical_device)
+    }
+
+    fn query(
+        surface_fn: &ash::khr::surface::Instance,
+        surface_khr: vk::SurfaceKHR,
+        physical_device: vk::PhysicalDevice,
+    ) -> Self
+    {
+        let capabilities = unsafe
+        {
+            surface_fn
+                .get_physical_device_surface_capabilities(physical_device, surface_khr)
                 .unwrap()
         };
 
-        let formats = unsafe {
-            surface.surface_fn
-                .get_physical_device_surface_formats(physical_device.physical_device, surface.surface_khr)
+        let formats = unsafe
+        {
+            surface_fn
+                .get_physical_device_surface_formats(physical_device, surface_khr)
                 .unwrap()
         };
 
-        let present_modes = unsafe {
-            surface.surface_fn
-                .get_physical_device_surface_present_modes(physical_device.physical_device, surface.surface_khr)
+        let present_modes = unsafe
+        {
+            surface_fn
+                .get_physical_device_surface_present_modes(physical_device, surface_khr)
                 .unwrap()
         };
 
@@ -46,6 +58,12 @@ pub struct SwapChain
     extent: vk::Extent2D,
     pub image_views: Vec<vk::ImageView>,
     device: ash::Device,
+    instance: ash::Instance,
+    physical_device: vk::PhysicalDevice,
+    graphics_family_index: u32,
+    present_family_index: u32,
+    surface_fn: ash::khr::surface::Instance,
+    surface_khr: vk::SurfaceKHR,
 }
 impl SwapChain
 {
@@ -63,7 +81,66 @@ impl SwapChain
         height: u32,
     ) -> Result<Self, vk::Result>
     {
-        let details = SwapChainSupportDetails::new(physical_device, surface);
+        Self::create(
+            &instance.instance,
+            &device.device,
+            device.graphics_family_index,
+            device.present_family_index,
+            physical_device.physical_device,
+            &surface.surface_fn,
+            surface.surface_khr,
+            width,
+            height,
+        )
+    }
+
+    pub fn recreate(&mut self, width: u32, height: u32) -> Result<(), vk::Result>
+    {
+        unsafe { self.device.device_wait_idle()? };
+
+        // Destroy the old swapchain before creating a new one. On Windows the
+        // WSI returns ERROR_NATIVE_WINDOW_IN_USE_KHR if a new swapchain is
+        // created on a surface that still owns a live swapchain.
+        unsafe
+        {
+            self.image_views
+                .iter()
+                .for_each(|view| self.device.destroy_image_view(*view, None));
+            self.image_views.clear();
+            self.swapchain_loader.destroy_swapchain(self.swapchain_khr, None);
+            self.swapchain_khr = vk::SwapchainKHR::null();
+        }
+
+        let new_swapchain = Self::create(
+            &self.instance,
+            &self.device,
+            self.graphics_family_index,
+            self.present_family_index,
+            self.physical_device,
+            &self.surface_fn,
+            self.surface_khr,
+            width,
+            height,
+        )?;
+
+        *self = new_swapchain;
+
+        Ok(())
+    }
+
+    fn create(
+        instance: &ash::Instance,
+        device: &ash::Device,
+        graphics_family_index: u32,
+        present_family_index: u32,
+        physical_device: vk::PhysicalDevice,
+        surface_fn: &ash::khr::surface::Instance,
+        surface_khr: vk::SurfaceKHR,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, vk::Result>
+    {
+        let details = SwapChainSupportDetails::query(surface_fn, surface_khr, physical_device);
         let format = Self::choose_surface_format(&details.formats);
         let present_mode = Self::choose_surface_present_mode(&details.present_modes);
         let extent = Self::choose_extent(details.capabilities, width, height);
@@ -88,12 +165,12 @@ impl SwapChain
             image_count,
         );
 
-        let concurrent = device.graphics_family_index != device.present_family_index;
-        let families_indices = [device.graphics_family_index, device.present_family_index];
+        let concurrent = graphics_family_index != present_family_index;
+        let families_indices = [graphics_family_index, present_family_index];
 
         let create_info = vk::SwapchainCreateInfoKHR
         {
-            surface: surface.surface_khr,
+            surface: surface_khr,
             min_image_count: image_count,
             image_format: format.format,
             image_color_space: format.color_space,
@@ -110,12 +187,27 @@ impl SwapChain
             ..Default::default()
         };
 
-        let swapchain_loader = swapchain::Device::new(&instance.instance, &device.device);
+        let swapchain_loader = swapchain::Device::new(instance, device);
         let swapchain_khr = unsafe { swapchain_loader.create_swapchain(&create_info, None).unwrap() };
         let images = unsafe { swapchain_loader.get_swapchain_images(swapchain_khr).unwrap() };
-        let image_views = Self::create_image_views(&images, format.format, &device.device);
+        let image_views = Self::create_image_views(&images, format.format, device);
 
-        Ok(Self { swapchain_loader, swapchain_khr, images, image_format: format.format, extent, image_views, device: device.device.clone() })
+        Ok(Self
+        {
+            swapchain_loader,
+            swapchain_khr,
+            images,
+            image_format: format.format,
+            extent,
+            image_views,
+            device: device.clone(),
+            instance: instance.clone(),
+            physical_device,
+            graphics_family_index,
+            present_family_index,
+            surface_fn: surface_fn.clone(),
+            surface_khr,
+        })
     }
 
     pub fn image_format(&self) -> vk::Format
