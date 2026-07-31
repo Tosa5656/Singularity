@@ -4,6 +4,7 @@ use std::ffi::CString;
 use crate::renderer::devices::Device;
 use crate::renderer::swapchain::SwapChain;
 use crate::renderer::shaders::Shader;
+use crate::renderer::vertices::Vertex;
 
 pub struct GraphicsPipeline
 {
@@ -93,8 +94,14 @@ impl GraphicsPipeline
         };
         let shader_states_infos = [vertex_shader_state_info, fragment_shader_state_info];
 
+        let vertex_binding_descs = [Vertex::get_binding_description()];
+        let vertex_attribute_descs = Vertex::get_attribute_descriptions();
         let vertex_input_info = vk::PipelineVertexInputStateCreateInfo
         {
+            vertex_binding_description_count: vertex_binding_descs.len() as u32,
+            p_vertex_binding_descriptions: vertex_binding_descs.as_ptr(),
+            vertex_attribute_description_count: vertex_attribute_descs.len() as u32,
+            p_vertex_attribute_descriptions: vertex_attribute_descs.as_ptr(),
             ..Default::default()
         };
 

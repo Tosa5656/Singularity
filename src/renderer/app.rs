@@ -10,6 +10,7 @@ use crate::renderer::command_buffer::CommandBuffer;
 use crate::renderer::command_pool::CommandPool;
 use crate::renderer::pipelines::GraphicsPipeline;
 use crate::renderer::framebuffer::Framebuffer;
+use crate::renderer::vertices::VertexBuffer;
 
 pub const ENABLE_VALIDATION_LAYERS: bool = true;
 pub const REQUIRED_LAYERS: [&'static str; 1] = ["VK_LAYER_KHRONOS_validation"];
@@ -32,6 +33,7 @@ pub struct App
     in_flight_frames: InFlightFrames,
     command_buffers: Vec<CommandBuffer>,
     command_pool: CommandPool,
+    vertex_buffer: VertexBuffer,
     device: Device,
 }
 
@@ -46,6 +48,7 @@ impl App
         in_flight_frames: InFlightFrames,
         command_buffers: Vec<CommandBuffer>,
         command_pool: CommandPool,
+        vertex_buffer: VertexBuffer,
         device: Device,
     ) -> Self
     {
@@ -55,7 +58,7 @@ impl App
             Some([size.width, size.height])
         };
 
-        Self { event_loop, window, window_size, swapchain, graphics_pipeline, framebuffer, in_flight_frames, command_buffers, command_pool, device }
+        Self { event_loop, window, window_size, swapchain, graphics_pipeline, framebuffer, in_flight_frames, command_buffers, command_pool, vertex_buffer, device }
     }
 
     pub fn run(self)
@@ -69,6 +72,7 @@ impl App
         let mut in_flight_frames = self.in_flight_frames;
         let mut command_buffers = self.command_buffers;
         let command_pool = self.command_pool;
+        let vertex_buffer = self.vertex_buffer;
         let mut window_size = self.window_size;
         let window = self.window;
         let _idle_guard = DeviceIdleGuard(device_raw.clone());
@@ -79,6 +83,7 @@ impl App
         let in_flight_frames = &mut in_flight_frames;
         let command_buffers = &mut command_buffers;
         let command_pool = &command_pool;
+        let vertex_buffer = &vertex_buffer;
 
         self.event_loop.run(move |event, elwt|
         {
@@ -118,6 +123,7 @@ impl App
                 graphics_pipeline,
                 graphics_queue,
                 present_queue,
+                vertex_buffer,
                 size,
             );
         })
@@ -145,6 +151,7 @@ fn draw_frame(
     graphics_pipeline: &GraphicsPipeline,
     graphics_queue: vk::Queue,
     present_queue: vk::Queue,
+    vertex_buffer: &VertexBuffer,
     window_size: [u32; 2],
 )
 {
@@ -178,7 +185,7 @@ fn draw_frame(
         Ok((image_index, _)) => image_index as usize,
         Err(vk::Result::ERROR_OUT_OF_DATE_KHR) =>
         {
-            recreate_swapchain(device, in_flight_frames, swapchain, framebuffer, command_pool, command_buffers, graphics_pipeline, window_size);
+            recreate_swapchain(device, in_flight_frames, swapchain, framebuffer, command_pool, command_buffers, graphics_pipeline, vertex_buffer, window_size);
             return;
         }
         Err(error) => panic!("Failed to acquire next image. Cause: {}", error),
@@ -219,11 +226,11 @@ fn draw_frame(
     {
         Ok(is_suboptimal) if is_suboptimal =>
         {
-            recreate_swapchain(device, in_flight_frames, swapchain, framebuffer, command_pool, command_buffers, graphics_pipeline, window_size);
+            recreate_swapchain(device, in_flight_frames, swapchain, framebuffer, command_pool, command_buffers, graphics_pipeline, vertex_buffer, window_size);
         }
         Err(vk::Result::ERROR_OUT_OF_DATE_KHR) =>
         {
-            recreate_swapchain(device, in_flight_frames, swapchain, framebuffer, command_pool, command_buffers, graphics_pipeline, window_size);
+            recreate_swapchain(device, in_flight_frames, swapchain, framebuffer, command_pool, command_buffers, graphics_pipeline, vertex_buffer, window_size);
         }
         Err(error) => panic!("Failed to present queue. Cause: {}", error),
         _ => {}
@@ -240,6 +247,7 @@ fn recreate_swapchain(
     command_pool: &CommandPool,
     command_buffers: &mut Vec<CommandBuffer>,
     graphics_pipeline: &GraphicsPipeline,
+    vertex_buffer: &VertexBuffer,
     window_size: [u32; 2],
 )
 {
@@ -268,6 +276,7 @@ fn recreate_swapchain(
             graphics_pipeline.render_pass,
             swapchain.extent(),
             graphics_pipeline.pipeline,
+            vertex_buffer.vertex_buffer,
         ))
         .collect();
 

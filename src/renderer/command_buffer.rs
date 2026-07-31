@@ -14,6 +14,7 @@ impl CommandBuffer
         render_pass: vk::RenderPass,
         extent: vk::Extent2D,
         graphics_pipeline: vk::Pipeline,
+        vertex_buffer: vk::Buffer,
     ) -> Self
     {
         let allocate_info = vk::CommandBufferAllocateInfo
@@ -68,6 +69,10 @@ impl CommandBuffer
         }
 
         unsafe { device.cmd_bind_pipeline(buffer, vk::PipelineBindPoint::GRAPHICS, graphics_pipeline) };
+
+        let vertex_buffers = [vertex_buffer];
+        let offsets = [0 as vk::DeviceSize];
+        unsafe { device.cmd_bind_vertex_buffers(buffer, 0, &vertex_buffers, &offsets) };
 
         let viewport = vk::Viewport
         {
