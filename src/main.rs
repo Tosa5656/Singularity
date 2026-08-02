@@ -6,6 +6,7 @@ use winit::{
 };
 use std::env;
 
+use ash::vk;
 use Singularity::renderer::{app::{App, AppInfo}, sync::InFlightFrames};
 use Singularity::renderer::instance::Instance;
 use Singularity::renderer::surface::Surface;
@@ -95,11 +96,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
 
     let framebuffer = Framebuffer::new(&device.device, &swapchain, &graphics_pipeline);
 
-    let command_pool = CommandPool::new(&device)
+    let command_pool = CommandPool::new(&device, vk::CommandPoolCreateFlags::empty())
         .expect("Failed to create command pool");
 
-    let vertex_buffer = VertexBuffer::new(&instance, &device, &physical_device, &VERTICES)
+    let transient_command_pool = CommandPool::new(&device, vk::CommandPoolCreateFlags::TRANSIENT)
+        .expect("Failed to create transient command pool");
+
+    let vertex_buffer = VertexBuffer::new(&instance, &device, &physical_device, &transient_command_pool, &VERTICES)
         .expect("Failed to create vertex buffer");
+
+    drop(transient_command_pool);
 
     let command_buffers: Vec<CommandBuffer> = framebuffer.framebuffers
         .iter()

@@ -9,11 +9,12 @@ pub struct CommandPool
 }
 impl CommandPool
 {
-    pub fn new(device: &Device) -> Result<Self, vk::Result>
+    pub fn new(device: &Device, create_flags: vk::CommandPoolCreateFlags) -> Result<Self, vk::Result>
     {
         let command_pool_info = vk::CommandPoolCreateInfo
         {
             queue_family_index: device.graphics_family_index,
+            flags: create_flags,
             ..Default::default()
         };
 
