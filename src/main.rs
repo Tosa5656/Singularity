@@ -16,7 +16,25 @@ use Singularity::renderer::pipelines::GraphicsPipeline;
 use Singularity::renderer::framebuffer::Framebuffer;
 use Singularity::renderer::command_pool::CommandPool;
 use Singularity::renderer::command_buffer::CommandBuffer;
-use Singularity::renderer::vertices::VertexBuffer;
+use Singularity::renderer::vertices::*;
+
+const VERTICES: [Vertex; 3] = [
+    Vertex
+    {
+        position: [0.0, -0.5, 0.0],
+        color: [1.0, 1.0, 1.0],
+    },
+    Vertex
+    {
+        position: [0.5, 0.5, 0.0],
+        color: [0.0, 1.0, 0.0],
+    },
+    Vertex
+    {
+        position: [-0.5, 0.5, 0.0],
+        color: [0.0, 0.0, 1.0],
+    },
+];
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -80,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
     let command_pool = CommandPool::new(&device)
         .expect("Failed to create command pool");
 
-    let vertex_buffer = VertexBuffer::new(&instance, &device, &physical_device)
+    let vertex_buffer = VertexBuffer::new(&instance, &device, &physical_device, &VERTICES)
         .expect("Failed to create vertex buffer");
 
     let command_buffers: Vec<CommandBuffer> = framebuffer.framebuffers

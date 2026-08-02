@@ -3,29 +3,12 @@ use ash::vk;
 use crate::renderer::{devices::{Device, PhysicalDevice}, instance::Instance};
 
 const VERTEX_SIZE: usize = 24;
-const VERTICES: [Vertex; 3] = [
-    Vertex
-    {
-        position: [0.0, -0.5, 0.0],
-        color: [1.0, 1.0, 1.0],
-    },
-    Vertex
-    {
-        position: [0.5, 0.5, 0.0],
-        color: [0.0, 1.0, 0.0],
-    },
-    Vertex
-    {
-        position: [-0.5, 0.5, 0.0],
-        color: [0.0, 0.0, 1.0],
-    },
-];
 
 #[derive(Copy, Clone)]
 pub struct Vertex
 {
-    position: [f32; 3],
-    color: [f32; 3]
+    pub position: [f32; 3],
+    pub color: [f32; 3]
 }
 impl Vertex
 {
@@ -67,7 +50,7 @@ pub struct VertexBuffer
 }
 impl VertexBuffer
 {
-    pub fn new(instance: &Instance, device: &Device, physical_device: &PhysicalDevice) -> Result<Self, vk::Result>
+    pub fn new(instance: &Instance, device: &Device, physical_device: &PhysicalDevice, vertices: &[Vertex]) -> Result<Self, vk::Result>
     {
         let memory_properties = unsafe
         {
@@ -76,7 +59,7 @@ impl VertexBuffer
                 .get_physical_device_memory_properties(physical_device.physical_device)
         };
 
-        let buffer_size = (VERTICES.len() * VERTEX_SIZE) as vk::DeviceSize;
+        let buffer_size = (vertices.len() * VERTEX_SIZE) as vk::DeviceSize;
 
         let buffer_info = vk::BufferCreateInfo
         {
@@ -114,7 +97,7 @@ impl VertexBuffer
                 std::mem::align_of::<Vertex>() as _,
                 mem_requirements.size,
             );
-            align.copy_from_slice(&VERTICES);
+            align.copy_from_slice(&vertices);
             device.device.unmap_memory(memory);
         };
 

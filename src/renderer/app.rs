@@ -8,9 +8,9 @@ use crate::renderer::swapchain::SwapChain;
 use crate::renderer::sync::InFlightFrames;
 use crate::renderer::command_buffer::CommandBuffer;
 use crate::renderer::command_pool::CommandPool;
-use crate::renderer::pipelines::GraphicsPipeline;
+use crate::renderer::pipelines::*;
 use crate::renderer::framebuffer::Framebuffer;
-use crate::renderer::vertices::VertexBuffer;
+use crate::renderer::vertices::*;
 
 pub const ENABLE_VALIDATION_LAYERS: bool = true;
 pub const REQUIRED_LAYERS: [&'static str; 1] = ["VK_LAYER_KHRONOS_validation"];
