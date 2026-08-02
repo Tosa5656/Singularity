@@ -10,3 +10,4 @@ pub mod command_pool;
 pub mod command_buffer;
 pub mod sync;
 pub mod vertices;
+pub mod buffer;

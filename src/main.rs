@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
             graphics_pipeline.render_pass,
             swapchain.extent(),
             graphics_pipeline.pipeline,
-            vertex_buffer.vertex_buffer,
+            vertex_buffer.buffer.get(),
         ))
         .collect();
 
