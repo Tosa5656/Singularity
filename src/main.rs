@@ -17,7 +17,8 @@ use Singularity::renderer::pipelines::GraphicsPipeline;
 use Singularity::renderer::framebuffer::Framebuffer;
 use Singularity::renderer::command_pool::CommandPool;
 use Singularity::renderer::command_buffer::CommandBuffer;
-use Singularity::renderer::vertices::*;
+use Singularity::renderer::buffers::VertexBuffer;
+use Singularity::renderer::vertices::Vertex;
 
 const VERTICES: [Vertex; 3] = [
     Vertex

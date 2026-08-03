@@ -10,7 +10,7 @@ use crate::renderer::command_buffer::CommandBuffer;
 use crate::renderer::command_pool::CommandPool;
 use crate::renderer::pipelines::*;
 use crate::renderer::framebuffer::Framebuffer;
-use crate::renderer::vertices::*;
+use crate::renderer::buffers::VertexBuffer;
 
 pub const ENABLE_VALIDATION_LAYERS: bool = true;
 pub const REQUIRED_LAYERS: [&'static str; 1] = ["VK_LAYER_KHRONOS_validation"];

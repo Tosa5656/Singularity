@@ -1,8 +1,10 @@
+use std::mem::size_of;
 use ash::vk;
 
 use crate::renderer::command_pool::CommandPool;
 use crate::renderer::devices::{Device, PhysicalDevice};
 use crate::renderer::instance::Instance;
+use crate::renderer::vertices::Vertex;
 
 pub struct Buffer
 {
@@ -142,5 +144,41 @@ impl Drop for Buffer
             self.device.destroy_buffer(self.buffer, None);
             self.device.free_memory(self.memory, None);
         }
+    }
+}
+
+pub struct VertexBuffer
+{
+    pub buffer: Buffer,
+}
+impl VertexBuffer
+{
+    pub fn new(instance: &Instance, device: &Device, physical_device: &PhysicalDevice, command_pool: &CommandPool, vertices: &[Vertex]) -> Result<Self, vk::Result>
+    {
+        let size = (vertices.len() * size_of::<Vertex>()) as vk::DeviceSize;
+
+        let staging_buffer = Buffer::new(
+            instance,
+            device,
+            physical_device,
+            size,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        )?;
+
+        staging_buffer.upload_data(vertices)?;
+
+        let buffer = Buffer::new(
+            instance,
+            device,
+            physical_device,
+            size,
+            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        )?;
+
+        buffer.copy_from(command_pool, device.graphics_queue, &staging_buffer)?;
+
+        Ok(Self { buffer })
     }
 }

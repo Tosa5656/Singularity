@@ -1,8 +1,5 @@
 use ash::vk;
 
-use crate::renderer::buffer::Buffer;
-use crate::renderer::{command_pool::CommandPool, devices::{Device, PhysicalDevice}, instance::Instance};
-
 const VERTEX_SIZE: usize = 24;
 
 #[derive(Copy, Clone)]
@@ -40,41 +37,5 @@ impl Vertex
             offset: 12,
         };
         [position_desc, color_desc]
-    }
-}
-
-pub struct VertexBuffer
-{
-    pub buffer: Buffer,
-}
-impl VertexBuffer
-{
-    pub fn new(instance: &Instance, device: &Device, physical_device: &PhysicalDevice, command_pool: &CommandPool, vertices: &[Vertex]) -> Result<Self, vk::Result>
-    {
-        let size = (vertices.len() * VERTEX_SIZE) as vk::DeviceSize;
-
-        let staging_buffer = Buffer::new(
-            instance,
-            device,
-            physical_device,
-            size,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-        )?;
-
-        staging_buffer.upload_data(vertices)?;
-
-        let buffer = Buffer::new(
-            instance,
-            device,
-            physical_device,
-            size,
-            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        )?;
-
-        buffer.copy_from(command_pool, device.graphics_queue, &staging_buffer)?;
-
-        Ok(Self { buffer })
     }
 }
