@@ -1,5 +1,7 @@
 use ash::vk;
 
+use crate::renderer::buffers::IndexBuffer;
+
 pub struct CommandBuffer
 {
     pub buffer: vk::CommandBuffer,
@@ -15,6 +17,7 @@ impl CommandBuffer
         extent: vk::Extent2D,
         graphics_pipeline: vk::Pipeline,
         vertex_buffer: vk::Buffer,
+        index_buffer: &IndexBuffer,
     ) -> Self
     {
         let allocate_info = vk::CommandBufferAllocateInfo
@@ -73,6 +76,7 @@ impl CommandBuffer
         let vertex_buffers = [vertex_buffer];
         let offsets = [0 as vk::DeviceSize];
         unsafe { device.cmd_bind_vertex_buffers(buffer, 0, &vertex_buffers, &offsets) };
+        unsafe { device.cmd_bind_index_buffer(buffer, index_buffer.buffer.get(), 0, vk::IndexType::UINT32);}
 
         let viewport = vk::Viewport
         {
@@ -92,7 +96,7 @@ impl CommandBuffer
         };
         unsafe { device.cmd_set_scissor(buffer, 0, &[scissor]) };
 
-        unsafe { device.cmd_draw(buffer, 3, 1, 0, 0) };
+        unsafe { device.cmd_draw_indexed(buffer, index_buffer.index_count(), 1, 0, 0, 0) };
 
         unsafe { device.cmd_end_render_pass(buffer) };
 

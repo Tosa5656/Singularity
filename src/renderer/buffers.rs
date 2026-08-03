@@ -182,3 +182,45 @@ impl VertexBuffer
         Ok(Self { buffer })
     }
 }
+
+pub struct IndexBuffer
+{
+    pub buffer: Buffer,
+    index_count: u32,
+}
+impl IndexBuffer
+{
+    pub fn new(instance: &Instance, device: &Device, physical_device: &PhysicalDevice, command_pool: &CommandPool, indices: &[u32]) -> Result<Self, vk::Result>
+    {
+        let size = (indices.len() * size_of::<u32>()) as vk::DeviceSize;
+
+        let staging_buffer = Buffer::new(
+            instance,
+            device,
+            physical_device,
+            size,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        )?;
+
+        staging_buffer.upload_data(indices)?;
+
+        let buffer = Buffer::new(
+            instance,
+            device,
+            physical_device,
+            size,
+            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        )?;
+
+        buffer.copy_from(command_pool, device.graphics_queue, &staging_buffer)?;
+
+        Ok(Self { buffer, index_count: indices.len() as u32 })
+    }
+
+    pub fn index_count(&self) -> u32
+    {
+        self.index_count
+    }
+}

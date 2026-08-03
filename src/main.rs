@@ -7,7 +7,7 @@ use winit::{
 use std::env;
 
 use ash::vk;
-use Singularity::renderer::{app::{App, AppInfo}, sync::InFlightFrames};
+use Singularity::renderer::{app::{App, AppInfo}, buffers::IndexBuffer, sync::InFlightFrames};
 use Singularity::renderer::instance::Instance;
 use Singularity::renderer::surface::Surface;
 use Singularity::renderer::devices::{PhysicalDevice, Device};
@@ -20,16 +20,21 @@ use Singularity::renderer::command_buffer::CommandBuffer;
 use Singularity::renderer::buffers::VertexBuffer;
 use Singularity::renderer::vertices::Vertex;
 
-const VERTICES: [Vertex; 3] = [
+const VERTICES: [Vertex; 4] = [
     Vertex
     {
-        position: [0.0, -0.5, 0.0],
-        color: [1.0, 1.0, 1.0],
+        position: [-0.5, -0.5, 0.0],
+        color: [1.0, 0.0, 0.0],
+    },
+    Vertex
+    {
+        position: [0.5, -0.5, 0.0],
+        color: [0.0, 1.0, 0.0],
     },
     Vertex
     {
         position: [0.5, 0.5, 0.0],
-        color: [0.0, 1.0, 0.0],
+        color: [0.0, 0.0, 1.0],
     },
     Vertex
     {
@@ -37,6 +42,8 @@ const VERTICES: [Vertex; 3] = [
         color: [0.0, 0.0, 1.0],
     },
 ];
+
+const INDICES: [u32; 6] = [0, 1, 2, 2, 3, 0];
 
 fn main() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -105,6 +112,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
 
     let vertex_buffer = VertexBuffer::new(&instance, &device, &physical_device, &transient_command_pool, &VERTICES)
         .expect("Failed to create vertex buffer");
+    
+    let index_buffer = IndexBuffer::new(&instance, &device, &physical_device, &command_pool, &INDICES)
+        .expect("Failed to create index buffer");
 
     drop(transient_command_pool);
 
@@ -118,6 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
             swapchain.extent(),
             graphics_pipeline.pipeline,
             vertex_buffer.buffer.get(),
+            &index_buffer
         ))
         .collect();
 
@@ -127,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
     drop(vertex_shader);
     drop(fragment_shader);
 
-    let app = App::new(event_loop, window, swapchain, graphics_pipeline, framebuffer, in_flight_frames, command_buffers, command_pool, vertex_buffer, device);
+    let app = App::new(event_loop, window, swapchain, graphics_pipeline, framebuffer, in_flight_frames, command_buffers, command_pool, vertex_buffer, index_buffer, device);
     app.run();
 
     Ok(())
